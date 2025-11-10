@@ -1,0 +1,180 @@
+version: '3.8'
+
+# ===========================================
+# Production Docker Compose Configuration
+# ===========================================
+# Domain: security-test.site
+# Use this on VPS for production deployment
+# ===========================================
+
+services:
+  # ===========================================
+  # MongoDB Database
+  # ===========================================
+  mongodb:
+    image: mongo:7.0
+    container_name: nt219-mongodb-prod
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: nt219-admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: security-nt219
+    ports:
+      - "127.0.0.1:27017:27017"  # Only accessible from localhost
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./backups:/backups  # For database backups
+    networks:
+      - nt219-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # HashiCorp Vault (Secret Management)
+  # ===========================================
+  vault:
+    image: hashicorp/vault:latest
+    container_name: nt219-vault-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8200:8200"  # Only accessible from localhost
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+      VAULT_API_ADDR: http://0.0.0.0:8200
+      VAULT_TOKEN: ${VAULT_ROOT_TOKEN}
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault_data:/vault/data
+      - vault_logs:/vault/logs
+    networks:
+      - nt219-network
+    command: server -dev -dev-root-token-id=${VAULT_ROOT_TOKEN}
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # Backend API (Node.js)
+  # ===========================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: nt219-backend-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"  # Only accessible from localhost (nginx proxy)
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads  # Persistent file uploads
+      - ./logs:/app/logs  # Application logs
+    networks:
+      - nt219-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ===========================================
+  # Frontend (React + Nginx)
+  # ===========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://api.security-test.site
+        VITE_APP_URL: https://security-test.site
+    container_name: nt219-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:80"  # Only accessible from localhost (nginx proxy)
+    depends_on:
+      - backend
+    networks:
+      - nt219-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+# ===========================================
+# Networks
+# ===========================================
+networks:
+  nt219-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ===========================================
+# Volumes (Persistent Data)
+# ===========================================
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  vault_data:
+    driver: local
+  vault_logs:
+    driver: local
