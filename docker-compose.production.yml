@@ -71,12 +71,10 @@ services:
   # ===========================================
   # Backend API (Node.js)
   # ===========================================
+  # Backend API (Node.js + Express)
+  # ===========================================
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: production
+    image: jackydev2006/nt219-backend:latest
     container_name: nt219-backend-prod
     restart: unless-stopped
     ports:
