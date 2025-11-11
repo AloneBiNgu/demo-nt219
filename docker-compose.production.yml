@@ -124,7 +124,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: https://api.security-test.site
+        VITE_API_BASE_URL: https://api.security-test.site/api/v1
         VITE_APP_URL: https://security-test.site
     container_name: nt219-frontend-prod
     restart: unless-stopped
