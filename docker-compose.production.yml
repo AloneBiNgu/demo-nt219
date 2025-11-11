@@ -9,16 +9,13 @@ version: '3.8'
 
 services:
   # ===========================================
-  # MongoDB Database
+  # MongoDB Database (No Authentication)
   # ===========================================
   mongodb:
     image: mongo:7.0
     container_name: nt219-mongodb-prod
     restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: nt219-admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: security-nt219
+    command: mongod --noauth
     ports:
       - "127.0.0.1:27017:27017"  # Only accessible from localhost
     volumes:
