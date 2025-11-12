@@ -31,6 +31,22 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required').optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required').optional(),
   GOOGLE_CALLBACK_URL: z.string().url('GOOGLE_CALLBACK_URL must be a valid URL').optional(),
+  // Generic OAuth2 Configuration
+  OAUTH2_CLIENT_ID: z.string().optional(),
+  OAUTH2_CLIENT_SECRET: z.string().optional(),
+  OAUTH2_AUTHORIZATION_URL: z.string().url().optional(),
+  OAUTH2_TOKEN_URL: z.string().url().optional(),
+  OAUTH2_USER_PROFILE_URL: z.string().url().optional(),
+  OAUTH2_CALLBACK_URL: z.string().url().optional(),
+  OAUTH2_SCOPE: z.string().optional(),
+  // GitHub OAuth2 Configuration
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CALLBACK_URL: z.string().url().optional(),
+  // Discord OAuth2 Configuration
+  DISCORD_CLIENT_ID: z.string().optional(),
+  DISCORD_CLIENT_SECRET: z.string().optional(),
+  DISCORD_CALLBACK_URL: z.string().url().optional(),
   // Email Configuration
   EMAIL_HOST: z.string().default('smtp.gmail.com'),
   EMAIL_PORT: z.string().regex(/^\d+$/).default('587'),

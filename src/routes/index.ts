@@ -17,7 +17,7 @@ const router = Router();
 router.use('/', healthRoutes);
 
 router.use('/auth', authRoutes);
-router.use('/auth', oauthRoutes); // OAuth routes under /auth prefix
+router.use('/oauth', oauthRoutes); // OAuth routes under /oauth prefix
 router.use('/products', productRoutes);
 router.use('/orders', orderRoutes);
 router.use('/payments', paymentRoutes);

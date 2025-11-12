@@ -173,6 +173,7 @@ export const ProductsPage = () => {
                 cursor="pointer"
                 overflow="hidden"
                 position="relative"
+                onClick={() => navigate(`/products/${product._id}`)}
               >
                 {/* Image Section with Overlay */}
                 <Box position="relative" overflow="hidden">

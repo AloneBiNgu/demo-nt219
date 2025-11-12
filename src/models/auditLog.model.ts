@@ -73,6 +73,7 @@ const auditLogSchema = new Schema<IAuditLog>(
         
         // Admin events
         'admin.user_access',
+        'admin.user_deleted',
         'admin.config_change',
         'admin.data_export',
         'admin.product_created',

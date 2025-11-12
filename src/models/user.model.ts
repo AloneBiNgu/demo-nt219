@@ -3,7 +3,7 @@ import { hashPassword, comparePassword } from '../utils/password';
 import { encryptField, decryptField } from '../utils/encryption';
 
 export type UserRole = 'user' | 'admin';
-export type AuthProvider = 'local' | 'google';
+export type AuthProvider = 'local' | 'google' | 'oauth2';
 
 export interface ITrustedDevice {
   deviceId: string;
@@ -29,6 +29,7 @@ export interface IUser {
   role: UserRole;
   provider: AuthProvider;
   googleId?: string;
+  oauth2Id?: string; // Generic OAuth2 provider ID
   
   // Email verification
   isEmailVerified: boolean;
@@ -105,11 +106,16 @@ const userSchema = new Schema<IUser, UserModelType, UserDocumentMethods>(
     },
     provider: {
       type: String,
-      enum: ['local', 'google'],
+      enum: ['local', 'google', 'oauth2'],
       default: 'local',
       required: true
     },
     googleId: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+    oauth2Id: {
       type: String,
       unique: true,
       sparse: true
@@ -231,7 +237,7 @@ const userSchema = new Schema<IUser, UserModelType, UserDocumentMethods>(
 
 // Indexes for performance
 userSchema.index({ email: 1, provider: 1 });
-userSchema.index({ googleId: 1 }, { sparse: true });
+// Note: googleId already has unique:true, sparse:true in schema - no need for separate index
 userSchema.index({ emailVerificationToken: 1 }, { sparse: true });
 userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 

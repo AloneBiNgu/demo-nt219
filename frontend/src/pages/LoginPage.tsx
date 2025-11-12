@@ -23,7 +23,7 @@ import {
   AlertDescription,
   CloseButton
 } from '@chakra-ui/react';
-import { FaGoogle, FaLock } from 'react-icons/fa';
+import { FaLock, FaKey, FaGithub, FaDiscord } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -104,10 +104,22 @@ export const LoginPage = () => {
     [login, location.state, navigate, toastError, toast]
   );
 
-  const handleGoogleLogin = () => {
-    // Redirect to backend Google OAuth endpoint
+  const handleGitHubLogin = () => {
+    // Redirect to backend GitHub OAuth endpoint
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
-    window.location.href = `${apiUrl}/auth/google`;
+    window.location.href = `${apiUrl}/oauth/github`;
+  };
+
+  const handleDiscordLogin = () => {
+    // Redirect to backend Discord OAuth endpoint
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+    window.location.href = `${apiUrl}/oauth/discord`;
+  };
+
+  const handleOAuth2Login = () => {
+    // Redirect to backend OAuth2 endpoint
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+    window.location.href = `${apiUrl}/oauth/oauth2`;
   };
 
   return (
@@ -157,22 +169,42 @@ export const LoginPage = () => {
           <Card shadow="xl" borderRadius="2xl" bg={cardBg} border="1px" borderColor={useColorModeValue('gray.200', 'gray.700')}>
             <CardBody p={8}>
               <Stack spacing={6}>
-                {/* Google Sign-In Button */}
-                <Button
-                  leftIcon={<Icon as={FaGoogle} />}
-                  onClick={handleGoogleLogin}
-                  variant="outline"
-                  size="lg"
-                  width="full"
-                  colorScheme="red"
-                  borderWidth="2px"
-                  _hover={{
-                    transform: 'translateY(-2px)',
-                    shadow: 'lg'
-                  }}
-                >
-                  Continue with Google
-                </Button>
+                {/* OAuth Buttons */}
+                <Stack spacing={3}>
+                  {/* GitHub Sign-In Button */}
+                  <Button
+                    leftIcon={<Icon as={FaGithub} />}
+                    onClick={handleGitHubLogin}
+                    variant="outline"
+                    size="lg"
+                    width="full"
+                    colorScheme="gray"
+                    borderWidth="2px"
+                    _hover={{
+                      transform: 'translateY(-2px)',
+                      shadow: 'lg'
+                    }}
+                  >
+                    Continue with GitHub
+                  </Button>
+
+                  {/* Discord Sign-In Button */}
+                  <Button
+                    leftIcon={<Icon as={FaDiscord} />}
+                    onClick={handleDiscordLogin}
+                    variant="outline"
+                    size="lg"
+                    width="full"
+                    colorScheme="purple"
+                    borderWidth="2px"
+                    _hover={{
+                      transform: 'translateY(-2px)',
+                      shadow: 'lg'
+                    }}
+                  >
+                    Continue with Discord
+                  </Button>
+                </Stack>
 
                 <HStack>
                   <Divider />

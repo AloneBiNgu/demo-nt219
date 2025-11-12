@@ -79,8 +79,8 @@ const refreshTokenSchema = new Schema<IRefreshToken>(
     },
     expiresAt: {
       type: Date,
-      required: true,
-      index: true
+      required: true
+      // Note: TTL index defined separately below - don't use index:true here
     },
     lastUsedAt: {
       type: Date,

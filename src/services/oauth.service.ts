@@ -10,6 +10,14 @@ export interface GoogleUserData {
   isEmailVerified: boolean;
 }
 
+export interface OAuth2UserData {
+  oauth2Id: string;
+  email: string;
+  displayName?: string;
+  avatar?: string;
+  isEmailVerified: boolean;
+}
+
 /**
  * Find existing user by Google ID or email, or create new user
  * Implements secure user provisioning for OAuth2 flow
@@ -153,4 +161,124 @@ export const checkEmailProvider = async (email: string): Promise<{
     exists: true,
     provider: user.provider
   };
+};
+
+/**
+ * Find existing user by OAuth2 ID or email, or create new user
+ * Generic OAuth2 implementation supporting any provider
+ */
+export const findOrCreateOAuth2User = async (
+  oauth2Data: OAuth2UserData,
+  metadata?: { ip?: string; userAgent?: string }
+): Promise<UserDocument> => {
+  try {
+    // First, check if user exists with this OAuth2 ID
+    let user = await UserModel.findOne({ oauth2Id: oauth2Data.oauth2Id });
+
+    if (user) {
+      logger.info({ userId: user._id, email: user.email }, 'Existing OAuth2 user found');
+      
+      // Log OAuth login
+      await logAuthEvent(
+        'auth.login',
+        user._id.toString(),
+        {
+          ip: metadata?.ip,
+          userAgent: metadata?.userAgent,
+          email: user.email,
+          method: 'oauth2'
+        },
+        'success'
+      );
+      
+      // Update user info if changed
+      let updated = false;
+      if (user.displayName !== oauth2Data.displayName) {
+        user.displayName = oauth2Data.displayName;
+        updated = true;
+      }
+      if (user.avatar !== oauth2Data.avatar) {
+        user.avatar = oauth2Data.avatar;
+        updated = true;
+      }
+      
+      if (updated) {
+        await user.save();
+        logger.info({ userId: user._id }, 'OAuth2 user profile updated');
+      }
+      
+      return user;
+    }
+
+    // Check if user exists with same email but different provider
+    user = await UserModel.findOne({ email: oauth2Data.email });
+
+    if (user) {
+      // Link OAuth2 account to existing user
+      logger.info(
+        { userId: user._id, existingProvider: user.provider }, 
+        'Linking OAuth2 account to existing user'
+      );
+
+      user.oauth2Id = oauth2Data.oauth2Id;
+      user.isEmailVerified = oauth2Data.isEmailVerified || user.isEmailVerified;
+      user.displayName = oauth2Data.displayName || user.displayName;
+      user.avatar = oauth2Data.avatar || user.avatar;
+      
+      await user.save();
+      
+      // Log account linking
+      await logAuthEvent(
+        'auth.login',
+        user._id.toString(),
+        {
+          ip: metadata?.ip,
+          userAgent: metadata?.userAgent,
+          email: user.email,
+          method: 'oauth2_linked'
+        },
+        'success'
+      );
+      
+      logger.info({ userId: user._id }, 'OAuth2 account linked successfully');
+      return user;
+    }
+
+    // Create new user
+    user = new UserModel({
+      email: oauth2Data.email,
+      provider: 'oauth2',
+      oauth2Id: oauth2Data.oauth2Id,
+      displayName: oauth2Data.displayName,
+      avatar: oauth2Data.avatar,
+      isEmailVerified: oauth2Data.isEmailVerified,
+      role: 'user'
+      // No password needed for OAuth users
+    });
+
+    await user.save();
+
+    // Log new user registration via OAuth
+    await logAuthEvent(
+      'auth.register',
+      user._id.toString(),
+      {
+        ip: metadata?.ip,
+        userAgent: metadata?.userAgent,
+        email: user.email,
+        method: 'oauth2'
+      },
+      'success'
+    );
+
+    logger.info(
+      { userId: user._id, email: user.email }, 
+      'New OAuth2 user created'
+    );
+
+    return user;
+  } catch (error) {
+    logger.error({ err: error, oauth2Data }, 'Failed to find or create OAuth2 user');
+    throw error;
+  }
 };
