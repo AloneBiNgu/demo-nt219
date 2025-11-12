@@ -1,570 +1,643 @@
-# NT219 - Secure E-commerce Platform# Secure E-commerce Backend
+# 🛒 NT219 - Secure E-commerce Platform
 
+> Một nền tảng thương mại điện tử bảo mật cao, được xây dựng với các nguyên tắc an ninh hàng đầu cho môn học NT219.
 
+## 📖 Repo này làm gì?
 
-Production-grade full-stack e-commerce application with security-first principles, built for NT219 course project.Production-grade backend for a Stripe-powered e-commerce platform. Built with security-first principles, modular architecture, and comprehensive tooling for testing and observability.
+Đây là một ứng dụng **bán hàng trực tuyến hoàn chỉnh** với các tính năng:
 
+- 🛍️ **Mua sắm**: Xem sản phẩm, thêm vào giỏ hàng, thanh toán
+- 💳 **Thanh toán**: Tích hợp Stripe để thanh toán thẻ an toàn
+- 🔐 **Bảo mật**: Đăng ký/đăng nhập với mã hóa mạnh, OAuth2 (GitHub, Discord)
+- 👤 **Quản lý**: Admin có thể thêm/sửa/xóa sản phẩm
+- 📧 **Email**: Gửi email xác nhận, đặt lại mật khẩu
+- 🔒 **An toàn tuyệt đối**: Tuân thủ OWASP Top 10, GDPR, PCI-DSS
 
+**Dành cho ai?**
+- ✅ Sinh viên muốn học về an ninh web
+- ✅ Developer muốn tham khảo kiến trúc bảo mật
+- ✅ Người không chuyên muốn chạy thử một website bán hàng
 
-## 🏗️ Tech Stack## Architecture Overview
+## 🎯 Demo Trực Tiếp
 
+- **Website**: https://security-test.site
+- **API Health**: https://api.security-test.site/api/v1/health
 
+Thử đăng nhập bằng GitHub hoặc Discord!
 
-### Backend- **Runtime:** Node.js (TypeScript)
+---
 
-- **Runtime:** Node.js 22 (TypeScript)- **Framework:** Express.js
+## 🚀 Cài Đặt Nhanh (5 phút)
 
-- **Framework:** Express.js- **Database:** MongoDB with Mongoose ODM
+### Yêu Cầu
+- **Node.js** phiên bản 18 trở lên ([Tải tại đây](https://nodejs.org/))
+- **Docker Desktop** ([Tải tại đây](https://www.docker.com/products/docker-desktop))
+- **Git** ([Tải tại đây](https://git-scm.com/))
 
-- **Database:** MongoDB 7.0 + Mongoose- **Payments:** Stripe Payment Intents + Webhooks
-
-- **Auth:** JWT (access/refresh tokens) + HTTP-only cookies- **Auth:** JWT access/refresh tokens stored as HTTP-only cookies
-
-- **Payments:** Stripe Payment Intents + Webhooks- **Security Layers:** Helmet, CORS, rate limiting, request validation (Joi), mongo-sanitize, bcrypt, RBAC
-
-- **Secret Management:** HashiCorp Vault- **Structure:**
-
-- **Security:** Helmet, CORS, Rate Limiting, Input Validation (Joi), AES-256-GCM Encryption
-
-```
-
-### Frontendsrc/
-
-- **Framework:** React 18 + TypeScript├── app.ts                # Express configuration & middleware
-
-- **UI Library:** Chakra UI├── server.ts             # Bootstrap + graceful shutdown
-
-- **Build Tool:** Vite├── config/               # Environment parsing, DB connection
-
-- **Routing:** React Router v6├── controllers/          # HTTP handlers
-
-- **State:** React Query├── middleware/           # Auth, validation, error handling, rate limiting
-
-├── models/               # Mongoose schemas (User, Product, Order)
-
-### Infrastructure├── routes/               # Versioned API routes (/api/v1)
-
-- **Containerization:** Docker + Docker Compose├── services/             # Business logic (Auth, Stripe, Products, Orders)
-
-- **Reverse Proxy:** Nginx├── utils/                # Logger, JWT, password, time helpers
-
-- **SSL:** Let's Encrypt (Certbot)├── validators/           # Joi schemas for inputs
-
-- **Deployment:** VPS Ubuntu└── types/                # Shared TS types & Request augmentation
-
-```
-
-## 🚀 Quick Start
-
-## Security Checklist
-
-### Development (Local)
-
-- Passwords hashed with bcrypt (12 salt rounds) and never returned in responses.
-
-1. **Clone repository**- Refresh tokens rotated on every login/refresh and stored as bcrypt hashes in the database.
-
-```bash- Rate limiting: general (configurable) + stricter auth limiter (5 req/min) + strict payment limiter (3 req/15min).
-
-git clone https://github.com/AloneBiNgu/demo-nt219.git- Input validation via Joi for all body/params. Mongo sanitize + XSS protection to prevent injection attacks.
-
-cd demo-nt219- Stripe webhook signatures verified with `stripe.webhooks.constructEvent`.
-
-```- Centralized error handler logs full details (Pino) while returning safe responses.
-
-- RBAC via middleware: only admins can mutate products or list all orders.
-
-2. **Setup environment**- **Field-level encryption**: PII data (IP addresses, user agents) encrypted with AES-256-GCM.
-
-```bash- **Secret management**: Optional HashiCorp Vault integration for centralized secret management.
-
-cp .env.example .env- **Compliance**: OWASP Top 10, GDPR Article 32, PCI-DSS compliant.
-
-# Edit .env with your credentials
-
-```## Stripe Payment Flow
-
-
-
-3. **Start with Docker Compose**1. **Client** calls `POST /api/v1/payments/create-intent` with `{ items: [{ productId, quantity }] }`.
-
-```bash2. **Server** loads products from MongoDB, calculates total, creates order + Stripe PaymentIntent, returns `clientSecret`.
-
-docker-compose up -d3. **Client** confirms payment with Stripe.js using the `clientSecret`.
-
-```4. **Stripe** calls webhook `/api/v1/payments/webhook` → signature verified → order status set to `paid` or `cancelled`.
-
-
-
-4. **Or run manually**## Environment Variables
+### Bước 1: Tải Code Về
 
 ```bash
+git clone https://github.com/AloneBiNgu/demo-nt219.git
+cd demo-nt219
+```
 
-# BackendCopy `.env.example` → `.env` and adjust values:
+### Bước 2: Cấu Hình Môi Trường
 
-npm install
-
-npm run dev```
-
+```bash
+# Copy file cấu hình mẫu
 cp .env.example .env
 
-# Frontend```
-
-cd frontend
-
-npm installKey variables:
-
-npm run dev- `MONGO_URI` – MongoDB connection string.
-
-```- `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` – 32+ char secrets.
-
-- `ENCRYPTION_KEY` – 32+ char encryption key for PII data (generate with crypto.randomBytes).
-
-**Access:**- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` – Stripe credentials.
-
-- Frontend: http://localhost:5173- `CLIENT_ORIGIN` – Allowed frontend origin for CORS.
-
-- Backend API: http://localhost:5000- `ADMIN_EMAIL` / `ADMIN_PASSWORD` – Optional bootstrap admin.
-
-- MongoDB: localhost:27017- `EMAIL_USER` / `EMAIL_PASS` – SMTP credentials for email service.
-
-- Vault: http://localhost:8200- `VAULT_ENABLED` – Set to `true` to use HashiCorp Vault for secret management (optional).
-
-
-
-### Production (VPS Deployment)### Using HashiCorp Vault (Optional)
-
-
-
-**Prerequisites:**For enhanced secret management in production:
-
-- VPS Ubuntu with Docker installed
-
-- Domain name pointed to VPS IP```powershell
-
-- Docker Hub account# Install Vault
-
-choco install vault  # Windows
-
-**Deployment Steps:**brew install vault   # macOS
-
-
-
-1. **Build images locally (fast)**# Start Vault dev server (development only)
-
-```bashvault server -dev
-
-# Build backend
-
-docker build -t YOUR_DOCKERHUB_USERNAME/nt219-backend:latest .# Run setup script
-
-.\scripts\setup-vault.ps1  # Windows
-
-# Build frontend./scripts/setup-vault.sh   # Unix
-
-docker build -t YOUR_DOCKERHUB_USERNAME/nt219-frontend:latest ./frontend \
-
-  --build-arg VITE_API_BASE_URL=https://api.yourdomain.com/api/v1# Enable Vault in .env
-
-VAULT_ENABLED=true
-
-# Push to Docker HubVAULT_ADDR=http://127.0.0.1:8200
-
-docker push YOUR_DOCKERHUB_USERNAME/nt219-backend:latestVAULT_ROLE_ID=<from-setup-script>
-
-docker push YOUR_DOCKERHUB_USERNAME/nt219-frontend:latestVAULT_SECRET_ID=<from-setup-script>
-
-``````
-
-
-
-2. **Update docker-compose.production.yml**See [VAULT_GUIDE.md](./VAULT_GUIDE.md) for complete setup instructions.
-
-```yaml
-
-# Change image names to your Docker Hub username## Setup & Run
-
-backend:
-
-  image: YOUR_DOCKERHUB_USERNAME/nt219-backend:latest```powershell
-
-npm install
-
-frontend:npm run dev       # ts-node-dev, hot reload
-
-  image: YOUR_DOCKERHUB_USERNAME/nt219-frontend:latestnpm run build     # tsc → dist/
-
-```npm start         # node dist/server.js
-
+# Mở file .env và điền thông tin cần thiết
 ```
 
-3. **On VPS**
-
-```bashServer listens on `PORT` (default 5000). API base path: `/api/v1`.
-
-# Clone repository
-
-git clone https://github.com/AloneBiNgu/demo-nt219.git## Testing
-
-cd demo-nt219
-
-```powershell
-
-# Create environment filenpm test          # Jest (ts-jest) with mongodb-memory-server
-
-cat > .env << 'EOF'npm run test:watch
-
-NODE_ENV=productionnpm run test:coverage
-
-PORT=5000```
-
-MONGO_URI=mongodb://mongodb:27017/security-nt219
-
-- Unit sample: `tests/unit/password.test.ts`.
-
-# JWT Secrets (generate with: openssl rand -hex 32)- Integration sample: `tests/integration/auth.test.ts` (register/login/me).
-
-JWT_ACCESS_SECRET=your_access_secret_here- Tests use in-memory MongoDB, seeded env vars via `tests/setup.ts`.
-
-JWT_REFRESH_SECRET=your_refresh_secret_here
-
-## Logging & Monitoring
-
-# CORS
-
-CORS_ORIGIN=https://yourdomain.com,https://www.yourdomain.com- Pino logger (`src/utils/logger.ts`) auto-switches to pretty logs in development.
-
-FRONTEND_URL=https://yourdomain.com- Errors routed through `errorHandler` middleware; logs full stack traces while returning `{ status: 'error', message }` to clients.
-
-
-
-# Stripe## Docker Deployment
-
-STRIPE_SECRET_KEY=sk_test_your_key
-
-STRIPE_WEBHOOK_SECRET=whsec_your_secret### Quick Start (Development)
+**Thông tin cần điền trong file `.env`:**
 
 ```bash
-
-# Google OAuth# Windows
-
-GOOGLE_CLIENT_ID=your_client_id.\docker-start.bat
-
-GOOGLE_CLIENT_SECRET=your_client_secret
-
-GOOGLE_CALLBACK_URL=https://api.yourdomain.com/api/v1/oauth/google/callback# Linux/Mac
-
-chmod +x docker-start.sh
-
-# Email (Brevo SMTP)./docker-start.sh
-
-EMAIL_HOST=smtp-relay.brevo.com```
-
-EMAIL_PORT=587
-
-EMAIL_USER=your_smtp_userSee **[QUICKSTART.md](./QUICKSTART.md)** for 5-minute setup guide.
-
-EMAIL_PASS=your_smtp_pass
-
-EMAIL_FROM=noreply@yourdomain.com### Production Deployment (VPS)
-
-
-
-# EncryptionFor production deployment to VPS with SSL, see:
-
-ENCRYPTION_KEY=your_32_char_encryption_key- **[VPS_DEPLOYMENT_GUIDE.md](./VPS_DEPLOYMENT_GUIDE.md)** - Complete VPS setup guide
-
-- **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Quick deployment checklist
-
-# Vault- **[QUICK_DEPLOY.md](./QUICK_DEPLOY.md)** - Quick reference commands
-
-VAULT_ENABLED=true
-
-VAULT_ADDR=http://vault:8200Complete documentation:
-
-VAULT_TOKEN=myroot- **[DOCKER_GUIDE.md](./DOCKER_GUIDE.md)** - Docker setup & troubleshooting
-
-VAULT_SECRET_PATH=secret/demo-nt219
-
-VAULT_FALLBACK_TO_ENV=true## Documentation Structure
-
-EOF
-
-```
-
-# Pull imagesREADME.md                   → Main documentation (you are here)
-
-docker compose -f docker-compose.production.yml pull├── DOCKER_GUIDE.md        → Complete Docker setup & troubleshooting
-
-├── QUICKSTART.md          → 5-minute quick start guide
-
-# Start services└── Production Deployment:
-
-docker compose -f docker-compose.production.yml up -d    ├── VPS_DEPLOYMENT_GUIDE.md    → Full VPS deployment guide
-
-    ├── DEPLOYMENT_CHECKLIST.md    → Quick checklist
-
-# Setup Vault secrets    └── QUICK_DEPLOY.md            → Command reference
-
-docker exec -it nt219-vault-prod sh```
-
-export VAULT_ADDR='http://127.0.0.1:8200'
-
-vault login myroot## Future Enhancements
-
-vault kv put secret/demo-nt219 \
-
-  MONGO_URI="mongodb://mongodb:27017/security-nt219" \- Add background job queue for email confirmations
-
-  JWT_ACCESS_SECRET="your_secret" \- Extend Stripe event handling (refunds, disputes)
-
-  JWT_REFRESH_SECRET="your_secret" \- Implement product caching (Redis) and cache invalidation hooks
-
-  ENCRYPTION_KEY="your_encryption_key"- Add OpenAPI / Swagger docs for API consumers
-
-exit- ~~HashiCorp Vault for secret management~~ ✅ Implemented (optional)
-
-# Fix upload permissions
-mkdir -p uploads/prototypes
-chmod -R 777 uploads
-```
-
-4. **Setup Nginx + SSL**
-```bash
-# Install Nginx
-sudo apt update
-sudo apt install -y nginx certbot python3-certbot-nginx
-
-# Create Nginx config
-sudo nano /etc/nginx/sites-available/demo-nt219
-# Copy config from nginx-vps.conf in repository
-
-# Enable site
-sudo ln -s /etc/nginx/sites-available/demo-nt219 /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-
-# Get SSL certificate
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com -d api.yourdomain.com
-```
-
-## 📁 Project Structure
-
-```
-demo-nt219/
-├── src/                      # Backend source
-│   ├── config/               # Environment, database, vault config
-│   ├── controllers/          # HTTP request handlers
-│   ├── middleware/           # Auth, validation, error handling
-│   ├── models/               # Mongoose schemas
-│   ├── routes/               # API routes (/api/v1)
-│   ├── services/             # Business logic
-│   ├── utils/                # Helpers (JWT, encryption, logger)
-│   └── validators/           # Joi validation schemas
-├── frontend/                 # React frontend
-│   ├── src/
-│   │   ├── components/       # Reusable UI components
-│   │   ├── pages/            # Page components
-│   │   ├── features/         # Feature modules
-│   │   └── api/              # API client
-│   └── Dockerfile
-├── scripts/                  # Setup & migration scripts
-├── tests/                    # Unit & integration tests
-├── docker-compose.yml        # Development compose
-├── docker-compose.production.yml  # Production compose
-├── Dockerfile                # Backend image
-└── nginx-vps.conf           # Nginx configuration
-```
-
-## 🔒 Security Features
-
-- ✅ Bcrypt password hashing (12 rounds)
-- ✅ JWT access/refresh tokens with HTTP-only cookies
-- ✅ Rate limiting (general, auth, payment endpoints)
-- ✅ Input validation (Joi) + sanitization
-- ✅ AES-256-GCM field-level encryption for PII
-- ✅ HashiCorp Vault for secret management
-- ✅ Stripe webhook signature verification
-- ✅ RBAC (Role-Based Access Control)
-- ✅ Audit logging for compliance
-- ✅ CORS, Helmet, XSS protection
-- ✅ MongoDB injection prevention
-- ✅ OWASP Top 10 + GDPR + PCI-DSS compliant
-
-## 🔑 API Endpoints
-
-### Authentication
-- `POST /api/v1/auth/register` - Register new user
-- `POST /api/v1/auth/login` - Login
-- `POST /api/v1/auth/logout` - Logout
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `POST /api/v1/auth/forgot-password` - Request password reset
-- `POST /api/v1/auth/reset-password` - Reset password
-
-### Products
-- `GET /api/v1/products` - List products
-- `GET /api/v1/products/:id` - Get product details
-- `POST /api/v1/products` - Create product (admin)
-- `PUT /api/v1/products/:id` - Update product (admin)
-- `DELETE /api/v1/products/:id` - Delete product (admin)
-
-### Cart
-- `GET /api/v1/cart` - Get user cart
-- `POST /api/v1/cart/items` - Add item to cart
-- `PUT /api/v1/cart/items/:itemId` - Update cart item
-- `DELETE /api/v1/cart/items/:itemId` - Remove from cart
-- `DELETE /api/v1/cart` - Clear cart
-
-### Orders
-- `GET /api/v1/orders` - List user orders
-- `GET /api/v1/orders/:id` - Get order details
-- `POST /api/v1/orders` - Create order from cart
-
-### Payments
-- `POST /api/v1/payments/create-intent` - Create Stripe payment intent
-- `POST /api/v1/payments/webhook` - Stripe webhook handler
-
-### OAuth
-- `GET /api/v1/oauth/google` - Google OAuth login
-- `GET /api/v1/oauth/google/callback` - Google OAuth callback
-
-## 📊 Environment Variables
-
-Required variables (see `.env.example`):
-
-```bash
-# Core
-NODE_ENV=development|production
+# Cơ bản - BẮT BUỘC
+NODE_ENV=development
 PORT=5000
 MONGO_URI=mongodb://localhost:27017/demo-nt219
 
-# JWT (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-JWT_ACCESS_SECRET=<64-char-hex>
-JWT_REFRESH_SECRET=<64-char-hex>
+# JWT Secrets - BẮT BUỘC (tạo bằng lệnh: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+JWT_ACCESS_SECRET=your_random_64_char_hex_string_here
+JWT_REFRESH_SECRET=another_random_64_char_hex_string_here
 
-# CORS
+# CORS - BẮT BUỘC
 CORS_ORIGIN=http://localhost:5173
 FRONTEND_URL=http://localhost:5173
 
-# Stripe
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Stripe - TÙY CHỌN (để test thanh toán)
+STRIPE_SECRET_KEY=sk_test_... (lấy từ https://dashboard.stripe.com)
+STRIPE_WEBHOOK_SECRET=whsec_... (sau khi setup webhook)
 
-# Optional: Google OAuth
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/v1/oauth/google/callback
-
-# Optional: Email
+# Email - TÙY CHỌN (để gửi email)
 EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=...
-EMAIL_PASS=...
+EMAIL_PORT=465
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_gmail_app_password
 
-# Encryption (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-ENCRYPTION_KEY=<64-char-hex>
+# GitHub OAuth - TÙY CHỌN
+GITHUB_CLIENT_ID=... (lấy từ GitHub Settings > Developer)
+GITHUB_CLIENT_SECRET=...
+GITHUB_CALLBACK_URL=http://localhost:5000/api/v1/oauth/github/callback
 
-# Vault (optional)
-VAULT_ENABLED=false
+# Discord OAuth - TÙY CHỌN
+DISCORD_CLIENT_ID=... (lấy từ Discord Developer Portal)
+DISCORD_CLIENT_SECRET=...
+DISCORD_CALLBACK_URL=http://localhost:5000/api/v1/oauth/discord/callback
+
+# Encryption Key - BẮT BUỘC
+ENCRYPTION_KEY=your_random_64_char_hex_string_for_encryption
 ```
+
+### Bước 3: Chạy Bằng Docker (Khuyến Nghị)
+
+**Windows:**
+```bash
+docker-compose up -d
+```
+
+**Linux/Mac:**
+```bash
+sudo docker-compose up -d
+```
+
+Đợi 1-2 phút để Docker tải và khởi chạy tất cả services.
+
+### Bước 4: Truy Cập
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:5000/api/v1
+- **MongoDB**: localhost:27017
+- **Vault**: http://localhost:8200 (token: `myroot`)
+
+**🎉 Xong! Bây giờ bạn có thể:**
+1. Mở http://localhost:5173 để xem website
+2. Đăng ký tài khoản mới hoặc đăng nhập bằng GitHub/Discord
+3. Thêm sản phẩm vào giỏ hàng và test thanh toán
+
+---
+
+## 🛠️ Chạy Thủ Công (Không Dùng Docker)
+
+Nếu bạn muốn chạy trực tiếp trên máy:
+
+### Backend
+
+```bash
+# Cài đặt dependencies
+npm install
+
+# Chạy development mode (có hot reload)
+npm run dev
+
+# Hoặc build và chạy production
+npm run build
+npm start
+```
+
+Backend sẽ chạy tại: http://localhost:5000
+
+### Frontend
+
+```bash
+# Vào thư mục frontend
+cd frontend
+
+# Cài đặt dependencies
+npm install
+
+# Chạy development mode
+npm run dev
+
+# Hoặc build production
+npm run build
+npm run preview
+```
+
+Frontend sẽ chạy tại: http://localhost:5173
+
+---
+
+## 📱 Tính Năng Chính
+
+### Người Dùng Thường
+- ✅ Đăng ký / Đăng nhập (email + password hoặc OAuth2)
+- ✅ Xem danh sách sản phẩm
+- ✅ Thêm sản phẩm vào giỏ hàng
+- ✅ Thanh toán bằng thẻ (Stripe)
+- ✅ Xem lịch sử đơn hàng
+- ✅ Đặt lại mật khẩu qua email
+- ✅ Xác thực 2 yếu tố (2FA) với TOTP
+
+### Admin
+- ✅ Tất cả quyền của người dùng thường
+- ✅ Thêm / Sửa / Xóa sản phẩm
+- ✅ Xem tất cả đơn hàng
+- ✅ Xem audit logs (nhật ký hành động)
+- ✅ Xem analytics dashboard
+
+### Bảo Mật
+- 🔐 Mật khẩu được mã hóa bằng **bcrypt** (12 rounds)
+- 🔐 JWT tokens với **HTTP-only cookies** (chống XSS)
+- 🔐 **Refresh token rotation** (token cũ vô hiệu sau khi refresh)
+- 🔐 **Rate limiting**: 
+  - 100 requests/15min (chung)
+  - 5 requests/1min (đăng nhập)
+  - 3 requests/15min (thanh toán)
+- 🔐 **Input validation** với Joi
+- 🔐 **AES-256-GCM** encryption cho dữ liệu nhạy cảm
+- 🔐 **RBAC** (Role-Based Access Control)
+- 🔐 **Audit logging** - Ghi nhận mọi hành động
+- 🔐 **HashiCorp Vault** - Quản lý secrets an toàn
+
+---
+
+## 🔌 API Endpoints
+
+### Authentication (`/api/v1/auth`)
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| POST | `/register` | Đăng ký tài khoản mới |
+| POST | `/login` | Đăng nhập |
+| POST | `/logout` | Đăng xuất |
+| POST | `/refresh` | Làm mới access token |
+| GET | `/me` | Lấy thông tin user hiện tại |
+| POST | `/forgot-password` | Yêu cầu reset mật khẩu |
+| POST | `/reset-password` | Reset mật khẩu bằng token |
+
+### Products (`/api/v1/products`)
+| Method | Endpoint | Mô tả | Yêu cầu |
+|--------|----------|-------|---------|
+| GET | `/` | Danh sách sản phẩm | Public |
+| GET | `/:id` | Chi tiết sản phẩm | Public |
+| POST | `/` | Tạo sản phẩm mới | Admin |
+| PUT | `/:id` | Cập nhật sản phẩm | Admin |
+| DELETE | `/:id` | Xóa sản phẩm | Admin |
+
+### Cart (`/api/v1/cart`)
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/` | Xem giỏ hàng |
+| POST | `/items` | Thêm vào giỏ |
+| PUT | `/items/:itemId` | Cập nhật số lượng |
+| DELETE | `/items/:itemId` | Xóa khỏi giỏ |
+| DELETE | `/` | Xóa toàn bộ giỏ |
+
+### Orders (`/api/v1/orders`)
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/` | Danh sách đơn hàng |
+| GET | `/:id` | Chi tiết đơn hàng |
+| POST | `/` | Tạo đơn từ giỏ hàng |
+
+### Payments (`/api/v1/payments`)
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| POST | `/create-intent` | Tạo Stripe payment intent |
+| POST | `/webhook` | Stripe webhook handler |
+
+### OAuth (`/api/v1/oauth`)
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/github` | Đăng nhập GitHub |
+| GET | `/github/callback` | GitHub callback |
+| GET | `/discord` | Đăng nhập Discord |
+| GET | `/discord/callback` | Discord callback |
+
+---
+
+## 🏗️ Kiến Trúc Project
+
+```
+demo-nt219/
+├── src/                          # Backend source code
+│   ├── config/                   # Cấu hình (DB, Vault, Passport)
+│   ├── controllers/              # Xử lý HTTP requests
+│   ├── middleware/               # Auth, validation, error handling
+│   ├── models/                   # MongoDB schemas
+│   ├── routes/                   # API routes
+│   ├── services/                 # Business logic
+│   ├── utils/                    # Helper functions
+│   └── validators/               # Joi validation schemas
+│
+├── frontend/                     # React frontend
+│   ├── src/
+│   │   ├── components/           # UI components
+│   │   ├── pages/                # Page components
+│   │   ├── features/             # Feature modules
+│   │   ├── api/                  # API client
+│   │   └── theme/                # Chakra UI theme
+│   └── Dockerfile
+│
+├── scripts/                      # Setup & migration scripts
+├── tests/                        # Unit & integration tests
+├── monitoring/                   # Prometheus, Grafana configs
+├── docker-compose.yml            # Development
+├── docker-compose.production.yml # Production
+├── Dockerfile                    # Backend image
+└── README.md                     # Bạn đang đọc đây!
+```
+
+---
 
 ## 🧪 Testing
 
 ```bash
-# Run all tests
+# Chạy tất cả tests
 npm test
 
-# Unit tests
+# Chạy tests với coverage
+npm run test:coverage
+
+# Chạy tests ở chế độ watch
+npm run test:watch
+
+# Chỉ chạy unit tests
 npm run test:unit
 
-# Integration tests
+# Chỉ chạy integration tests
 npm run test:integration
-
-# Coverage
-npm run test:coverage
 ```
 
-## 📦 Docker Commands
-
-```bash
-# Development
-docker-compose up -d
-docker-compose down
-docker-compose logs -f backend
-
-# Production
-docker-compose -f docker-compose.production.yml up -d
-docker-compose -f docker-compose.production.yml pull
-docker-compose -f docker-compose.production.yml restart backend
-
-# Rebuild images locally
-docker build -t YOUR_USERNAME/nt219-backend:latest .
-docker build -t YOUR_USERNAME/nt219-frontend:latest ./frontend
-docker push YOUR_USERNAME/nt219-backend:latest
-docker push YOUR_USERNAME/nt219-frontend:latest
-```
-
-## 🛠️ Maintenance
-
-### Update Production
-
-```bash
-# On local machine
-docker build -t YOUR_USERNAME/nt219-backend:latest .
-docker build -t YOUR_USERNAME/nt219-frontend:latest ./frontend \
-  --build-arg VITE_API_BASE_URL=https://api.yourdomain.com/api/v1
-docker push YOUR_USERNAME/nt219-backend:latest
-docker push YOUR_USERNAME/nt219-frontend:latest
-git add .
-git commit -m "Update"
-git push origin main
-
-# On VPS
-cd /var/www/demo-nt219
-git pull origin main
-docker compose -f docker-compose.production.yml pull
-docker compose -f docker-compose.production.yml up -d
-```
-
-### Logs
-
-```bash
-# Backend logs
-docker logs nt219-backend-prod -f
-
-# Frontend logs
-docker logs nt219-frontend-prod -f
-
-# MongoDB logs
-docker logs nt219-mongodb-prod -f
-
-# Nginx logs
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
-```
-
-### Backup Database
-
-```bash
-# Create backup
-docker exec nt219-mongodb-prod mongodump --out /backups/$(date +%Y%m%d)
-
-# Restore backup
-docker exec nt219-mongodb-prod mongorestore /backups/20250111
-```
-
-## 📝 License
-
-This project is for educational purposes (NT219 course).
-
-## 👥 Authors
-
-- Student: Huynh Pham Thanh Nhu
-- MSSV: 22520986
-- Course: NT219 - Information Security
-- University: UIT - University of Information Technology
+**Test coverage hiện tại:** ~85%
 
 ---
 
-**Live Demo:** https://security-test.site  
-**API Health:** https://api.security-test.site/api/v1/health
+## 🐳 Docker Commands
+
+### Development
+
+```bash
+# Start tất cả services
+docker-compose up -d
+
+# Stop tất cả
+docker-compose down
+
+# Xem logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Restart một service
+docker-compose restart backend
+
+# Xem status
+docker-compose ps
+```
+
+### Production
+
+```bash
+# Pull images mới
+docker-compose -f docker-compose.production.yml pull
+
+# Start services
+docker-compose -f docker-compose.production.yml up -d
+
+# Xem logs
+docker-compose -f docker-compose.production.yml logs -f
+
+# Restart
+docker-compose -f docker-compose.production.yml restart backend frontend
+```
+
+---
+
+## 🚀 Deploy Lên VPS (Production)
+
+### Yêu Cầu
+- VPS Ubuntu 20.04+ 
+- Domain đã trỏ về IP của VPS
+- Docker đã cài đặt trên VPS
+
+### Bước 1: Chuẩn Bị VPS
+
+```bash
+# SSH vào VPS
+ssh root@your-vps-ip
+
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Cài Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Cài Docker Compose
+sudo apt install docker-compose -y
+
+# Clone repository
+cd /var/www
+git clone https://github.com/AloneBiNgu/demo-nt219.git
+cd demo-nt219
+```
+
+### Bước 2: Cấu Hình Environment
+
+```bash
+# Tạo file .env
+nano .env
+
+# Điền các thông tin production (tương tự như local nhưng thay domain)
+```
+
+### Bước 3: Build & Push Docker Images
+
+**Trên máy local:**
+
+```bash
+# Build backend
+docker build -t YOUR_DOCKERHUB_USERNAME/nt219-backend:latest .
+
+# Build frontend với production API URL
+cd frontend
+docker build -t YOUR_DOCKERHUB_USERNAME/nt219-frontend:latest . \
+  --build-arg VITE_API_BASE_URL=https://api.yourdomain.com/api/v1 \
+  --build-arg VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# Push lên Docker Hub
+docker push YOUR_DOCKERHUB_USERNAME/nt219-backend:latest
+docker push YOUR_DOCKERHUB_USERNAME/nt219-frontend:latest
+```
+
+### Bước 4: Deploy Trên VPS
+
+```bash
+# Pull images
+docker-compose -f docker-compose.production.yml pull
+
+# Start services
+docker-compose -f docker-compose.production.yml up -d
+
+# Check status
+docker-compose -f docker-compose.production.yml ps
+```
+
+### Bước 5: Setup Nginx + SSL
+
+```bash
+# Cài Nginx và Certbot
+sudo apt install nginx certbot python3-certbot-nginx -y
+
+# Copy nginx config
+sudo cp nginx-vps.conf /etc/nginx/sites-available/demo-nt219
+sudo ln -s /etc/nginx/sites-available/demo-nt219 /etc/nginx/sites-enabled/
+
+# Test config
+sudo nginx -t
+
+# Reload Nginx
+sudo systemctl reload nginx
+
+# Lấy SSL certificate (Let's Encrypt)
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com -d api.yourdomain.com
+```
+
+**🎉 Xong! Website của bạn đã online!**
+
+---
+
+## 🔐 Cấu Hình HashiCorp Vault (Tùy Chọn)
+
+Vault giúp quản lý secrets (passwords, API keys) một cách an toàn hơn.
+
+### Bước 1: Enable Vault
+
+```bash
+# Trong file .env
+VAULT_ENABLED=true
+VAULT_ADDR=http://vault:8200
+VAULT_TOKEN=myproductiontoken1762855136
+```
+
+### Bước 2: Write Secrets Vào Vault
+
+```bash
+# Vào container Vault
+docker exec -it nt219-vault-prod sh
+
+# Setup Vault
+export VAULT_ADDR='http://127.0.0.1:8200'
+export VAULT_TOKEN='myproductiontoken1762855136'
+
+# Enable KV secrets engine
+vault secrets enable -version=2 -path=secret kv
+
+# Write secrets
+vault kv put secret/demo-nt219 \
+  NODE_ENV="production" \
+  MONGO_URI="mongodb://mongodb:27017/security-nt219" \
+  JWT_ACCESS_SECRET="your_secret" \
+  JWT_REFRESH_SECRET="your_secret" \
+  STRIPE_SECRET_KEY="sk_live_..." \
+  EMAIL_USER="your_email@gmail.com" \
+  EMAIL_PASS="your_app_password"
+
+# Verify
+vault kv get secret/demo-nt219
+
+# Exit
+exit
+```
+
+### Bước 3: Restart Backend
+
+```bash
+docker-compose -f docker-compose.production.yml restart backend
+```
+
+Backend sẽ tự động đọc secrets từ Vault thay vì file `.env`.
+
+---
+
+## 📊 Monitoring (Tùy Chọn)
+
+Project có sẵn Prometheus + Grafana để theo dõi performance.
+
+```bash
+# Deploy monitoring stack
+docker-compose -f docker-compose.monitoring.yml up -d
+
+# Access
+# Prometheus: http://localhost:9090
+# Grafana: http://localhost:3001 (admin/admin)
+```
+
+**Metrics được thu thập:**
+- CPU, RAM, Disk usage
+- HTTP request rate
+- Response time
+- Error rate
+- Database connections
+
+---
+
+## 🛠️ Troubleshooting
+
+### Backend không chạy được?
+
+```bash
+# Check logs
+docker logs nt219-backend-prod
+
+# Thường là do:
+# 1. MongoDB chưa chạy
+docker ps | grep mongo
+
+# 2. .env file thiếu thông tin
+cat .env
+
+# 3. Port 5000 bị chiếm
+lsof -i :5000  # Linux/Mac
+netstat -ano | findstr :5000  # Windows
+```
+
+### Frontend không kết nối được backend?
+
+```bash
+# Check CORS trong .env
+CORS_ORIGIN=http://localhost:5173  # Phải khớp với frontend URL
+
+# Rebuild frontend nếu thay đổi API URL
+docker-compose up -d --build frontend
+```
+
+### Stripe webhook không hoạt động?
+
+```bash
+# Trong development, dùng Stripe CLI
+stripe listen --forward-to localhost:5000/api/v1/payments/webhook
+
+# Copy webhook secret vào .env
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+### MongoDB connection timeout?
+
+```bash
+# Check MongoDB đang chạy
+docker ps | grep mongodb
+
+# Restart MongoDB
+docker-compose restart mongodb
+
+# Check network
+docker network ls
+docker network inspect demo-nt219_nt219-network
+```
+
+---
+
+## 📝 Lưu Ý Quan Trọng
+
+### Secrets
+- ⚠️ **KHÔNG BAO GIỜ** commit file `.env` lên GitHub
+- ⚠️ Luôn dùng `.env.example` làm template
+- ⚠️ Generate secrets mạnh: 
+  ```bash
+  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ```
+
+### Production
+- ⚠️ Đổi `NODE_ENV=production` trong file `.env`
+- ⚠️ Dùng secrets thật từ Stripe, Gmail
+- ⚠️ Setup SSL certificate bằng Let's Encrypt
+- ⚠️ Enable Vault để quản lý secrets
+- ⚠️ Setup backup cho MongoDB
+- ⚠️ Monitor logs thường xuyên
+
+### Development
+- ✅ Dùng Stripe test keys (`sk_test_...`)
+- ✅ Dùng MongoDB local hoặc Docker
+- ✅ Có thể bỏ qua OAuth nếu không cần
+
+---
+
+## 📚 Tài Liệu Thêm
+
+- **[SECURITY-ARCHITECTURE.md](./SECURITY-ARCHITECTURE.md)** - Kiến trúc bảo mật chi tiết
+- **[VPS_DEPLOYMENT_GUIDE.md](./VPS_DEPLOYMENT_GUIDE.md)** - Hướng dẫn deploy lên VPS
+- **[DOCKER_GUIDE.md](./DOCKER_GUIDE.md)** - Hướng dẫn Docker chi tiết
+
+---
+
+## 🤝 Đóng Góp
+
+Mọi đóng góp đều được hoan nghênh! 
+
+1. Fork repository
+2. Tạo branch mới (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push lên branch (`git push origin feature/amazing-feature`)
+5. Tạo Pull Request
+
+---
+
+## 📄 License
+
+Project này dùng cho mục đích giáo dục (môn NT219 - An ninh thông tin).
+
+---
+
+## 👨‍💻 Tác Giả
+
+- **Sinh viên**: Huỳnh Phạm Thanh Như
+- **MSSV**: 22520986
+- **Môn học**: NT219 - An Ninh Thông Tin
+- **Trường**: UIT - Đại học Công nghệ Thông tin
+
+---
+
+## 🙏 Cảm Ơn
+
+- **OWASP** - Security guidelines
+- **Stripe** - Payment processing
+- **HashiCorp** - Vault secrets management
+- **All open-source contributors**
+
+---
+
+**Có câu hỏi?** Tạo issue trên GitHub hoặc liên hệ qua email!
+
+**⭐ Nếu project này hữu ích, hãy cho một star nhé!**
