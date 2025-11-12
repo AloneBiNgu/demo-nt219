@@ -1,5 +1,5 @@
 import passport from 'passport';
-import { Strategy as OAuth2Strategy } from 'passport-oauth2';
+import { Strategy as OAuth2Strategy, VerifyFunction } from 'passport-oauth2';
 import { env } from './env';
 import { findOrCreateOAuth2User } from '../services/oauth.service';
 import logger from '../utils/logger';
@@ -24,7 +24,7 @@ if (env.OAUTH2_CLIENT_ID && env.OAUTH2_CLIENT_SECRET) {
       accessToken: string,
       refreshToken: string,
       profile: any,
-      done: VerifyCallback
+      done: (error: any, user?: any) => void
     ) => {
       try {
         // Fetch user profile from OAuth2 provider
@@ -116,7 +116,7 @@ if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
       accessToken: string,
       refreshToken: string,
       profile: any,
-      done: VerifyCallback
+      done: (error: any, user?: any) => void
     ) => {
       try {
         // Fetch user profile from GitHub
@@ -214,7 +214,7 @@ if (env.DISCORD_CLIENT_ID && env.DISCORD_CLIENT_SECRET) {
       accessToken: string,
       refreshToken: string,
       profile: any,
-      done: VerifyCallback
+      done: (error: any, user?: any) => void
     ) => {
       try {
         // Fetch user profile from Discord
