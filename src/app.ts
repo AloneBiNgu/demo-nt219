@@ -28,14 +28,9 @@ const allowedOrigins = configuredOrigins.length > 0 ? configuredOrigins : defaul
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
-    // SECURITY: In production, require origin header for all requests
+    // Allow requests without Origin header (health checks, same-server requests, curl)
+    // Browsers always send Origin for cross-origin requests, so this is safe
     if (!origin) {
-      if (appConfig.env === 'production') {
-        logger.warn('Blocked request without Origin header in production');
-        callback(new Error('Origin header required'));
-        return;
-      }
-      // Allow in development (for tools like Postman)
       callback(null, true);
       return;
     }
