@@ -13,11 +13,9 @@ import {
   Input,
   Stack,
   Text,
-  Divider,
-  HStack,
   useColorModeValue
 } from '@chakra-ui/react';
-import { FaGoogle, FaUserPlus } from 'react-icons/fa';
+import { FaUserPlus } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -25,7 +23,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthProvider';
 import { useApiErrorToast } from '../hooks/useApiErrorToast';
-import { useOAuth } from '../hooks/useOAuth';
 
 const MotionBox = motion(Box);
 
@@ -59,7 +56,6 @@ export const RegisterPage = () => {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const toastError = useApiErrorToast();
-  const { login: loginGoogle, isLoading: isGoogleLoading } = useOAuth('google');
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const textSecondary = useColorModeValue('gray.600', 'gray.400');
@@ -131,32 +127,6 @@ export const RegisterPage = () => {
           <Card shadow="xl" borderRadius="2xl" bg={cardBg} border="1px" borderColor={useColorModeValue('gray.200', 'gray.700')}>
             <CardBody p={8}>
               <Stack spacing={6}>
-                {/* Google Sign-Up Button */}
-                <Button
-                  leftIcon={<Icon as={FaGoogle} />}
-                  onClick={loginGoogle}
-                  isLoading={isGoogleLoading}
-                  variant="outline"
-                  size="lg"
-                  width="full"
-                  colorScheme="red"
-                  borderWidth="2px"
-                  _hover={{
-                    transform: 'translateY(-2px)',
-                    shadow: 'lg'
-                  }}
-                >
-                  Continue with Google
-                </Button>
-
-                <HStack>
-                  <Divider />
-                  <Text fontSize="sm" color={textSecondary} whiteSpace="nowrap" px={2}>
-                    or register with email
-                  </Text>
-                  <Divider />
-                </HStack>
-
                 {/* Email/Password Form */}
                 <Stack as="form" onSubmit={handleSubmit(onSubmit)} spacing={5}>
                   <FormControl isInvalid={Boolean(errors.email)}>
