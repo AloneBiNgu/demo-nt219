@@ -67,23 +67,55 @@ export const updateOrderStatusHandler = async (req: Request, res: Response) => {
 };
 
 /**
- * DEV ONLY: Complete payment for testing without Stripe webhook
- * Remove this in production or protect with environment check
+ * DEV/TEST ONLY: Complete payment for testing without Stripe webhook
+ * 
+ * SECURITY: Multiple layers of protection:
+ * 1. Environment check (NODE_ENV)
+ * 2. Explicit DEV_FEATURES flag required
+ * 3. Admin role required
+ * 4. Audit logging
  */
 export const completePaymentDevHandler = async (req: Request, res: Response) => {
-  if (process.env.NODE_ENV === 'production') {
-    return sendError(res, StatusCodes.FORBIDDEN, 'This endpoint is only available in development');
+  // SECURITY FIX: Multiple checks to prevent accidental exposure
+  const isDevEnvironment = process.env.NODE_ENV !== 'production';
+  const devFeaturesEnabled = process.env.ENABLE_DEV_FEATURES === 'true';
+  const isAdmin = req.authUser?.role === 'admin';
+  
+  // Must be non-production AND have explicit flag AND be admin
+  if (!isDevEnvironment || !devFeaturesEnabled) {
+    logger.warn({
+      userId: req.authUser?.id,
+      ip: req.ip,
+      env: process.env.NODE_ENV,
+      devFeatures: devFeaturesEnabled
+    }, 'Attempted access to dev payment endpoint in restricted environment');
+    return sendError(res, StatusCodes.NOT_FOUND, 'Resource not found');
+  }
+  
+  if (!isAdmin) {
+    logger.warn({
+      userId: req.authUser?.id,
+      ip: req.ip
+    }, 'Non-admin attempted access to dev payment endpoint');
+    return sendError(res, StatusCodes.FORBIDDEN, 'Admin access required');
   }
   
   const { orderId } = req.params;
   
   try {
-    const order = await updateOrderStatus(orderId, 'paid');
+    const order = await updateOrderStatus(orderId, 'paid', req.authUser?.id);
     if (!order) {
       return sendError(res, StatusCodes.NOT_FOUND, 'Order not found');
     }
     
-    logger.info({ orderId }, '[DEV] Order manually marked as paid');
+    // Audit log for security tracking
+    logger.warn({ 
+      orderId, 
+      adminId: req.authUser?.id,
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    }, '[DEV] Order manually marked as paid by admin - AUDIT');
+    
     return sendSuccess(res, StatusCodes.OK, { message: 'Order marked as paid (dev mode)', order });
   } catch (error) {
     logger.error({ err: error }, 'Failed to complete payment');

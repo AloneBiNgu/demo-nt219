@@ -5,34 +5,60 @@ import { appConfig } from '../config/env';
  * Field-Level Encryption Utility
  * Uses AES-256-GCM for encryption (NIST approved)
  * Follows OWASP cryptographic storage guidelines
+ * 
+ * SECURITY FIX: Now uses random salt per encryption instead of static salt
  */
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16; // 128 bits
 const AUTH_TAG_LENGTH = 16; // 128 bits
 const SALT_LENGTH = 32; // 256 bits
+const PBKDF2_ITERATIONS = 100000;
 
-// Get encryption key from environment (should be 32 bytes for AES-256)
-const getEncryptionKey = (): Buffer => {
+// Get master key from environment
+const getMasterKey = (): string => {
   const key = appConfig.encryptionKey || process.env.ENCRYPTION_KEY;
   
   if (!key) {
     throw new Error('ENCRYPTION_KEY not configured');
   }
   
-  // Derive a proper 256-bit key using PBKDF2
-  return crypto.pbkdf2Sync(key, 'secure-commerce-salt', 100000, 32, 'sha256');
+  return key;
 };
 
 /**
- * Encrypt sensitive data
- * Returns: base64(iv:authTag:encryptedData)
+ * Derive encryption key from master key using random salt
+ * SECURITY: Uses random salt to prevent rainbow table attacks
+ */
+const deriveKey = (salt: Buffer): Buffer => {
+  const masterKey = getMasterKey();
+  return crypto.pbkdf2Sync(masterKey, salt, PBKDF2_ITERATIONS, 32, 'sha256');
+};
+
+/**
+ * @deprecated Use deriveKey with random salt instead
+ * Kept for backward compatibility with existing encrypted data
+ */
+const getLegacyEncryptionKey = (): Buffer => {
+  const key = getMasterKey();
+  // Legacy static salt - only for decrypting old data
+  return crypto.pbkdf2Sync(key, 'secure-commerce-salt', PBKDF2_ITERATIONS, 32, 'sha256');
+};
+
+/**
+ * Encrypt sensitive data with random salt
+ * Returns: base64(version:salt:iv:authTag:encryptedData)
+ * 
+ * SECURITY FIX: Now uses random salt per encryption
+ * Format v2 includes salt, v1 (legacy) does not
  */
 export const encryptField = (plaintext: string | null | undefined): string | null => {
   if (!plaintext) return null;
   
   try {
-    const key = getEncryptionKey();
+    // Generate random salt for this encryption
+    const salt = crypto.randomBytes(SALT_LENGTH);
+    const key = deriveKey(salt);
     const iv = crypto.randomBytes(IV_LENGTH);
     
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
@@ -42,8 +68,9 @@ export const encryptField = (plaintext: string | null | undefined): string | nul
     
     const authTag = cipher.getAuthTag();
     
-    // Format: iv:authTag:encryptedData (all in hex)
-    const combined = `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+    // Format v2: version:salt:iv:authTag:encryptedData (all in hex)
+    // Version prefix allows backward compatibility detection
+    const combined = `v2:${salt.toString('hex')}:${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
     
     // Return as base64 for storage
     return Buffer.from(combined).toString('base64');
@@ -54,24 +81,38 @@ export const encryptField = (plaintext: string | null | undefined): string | nul
 
 /**
  * Decrypt sensitive data
+ * Supports both v2 (random salt) and legacy (static salt) formats
  */
 export const decryptField = (ciphertext: string | null | undefined): string | null => {
   if (!ciphertext) return null;
   
   try {
-    const key = getEncryptionKey();
-    
     // Decode from base64
     const combined = Buffer.from(ciphertext, 'base64').toString('utf8');
     const parts = combined.split(':');
     
-    if (parts.length !== 3) {
+    let key: Buffer;
+    let iv: Buffer;
+    let authTag: Buffer;
+    let encrypted: string;
+    
+    // Check format version
+    if (parts[0] === 'v2' && parts.length === 5) {
+      // New format with random salt: v2:salt:iv:authTag:encrypted
+      const salt = Buffer.from(parts[1], 'hex');
+      key = deriveKey(salt);
+      iv = Buffer.from(parts[2], 'hex');
+      authTag = Buffer.from(parts[3], 'hex');
+      encrypted = parts[4];
+    } else if (parts.length === 3) {
+      // Legacy format with static salt: iv:authTag:encrypted
+      key = getLegacyEncryptionKey();
+      iv = Buffer.from(parts[0], 'hex');
+      authTag = Buffer.from(parts[1], 'hex');
+      encrypted = parts[2];
+    } else {
       throw new Error('Invalid encrypted data format');
     }
-    
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
     
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
@@ -106,10 +147,12 @@ export const decryptArray = (encryptedItems: string[] | null | undefined): strin
 /**
  * Hash sensitive data for comparison (one-way)
  * Used for tokens that need to be compared but not decrypted
+ * Uses master key directly for HMAC (no need for salt in HMAC)
  */
 export const hashSensitiveData = (data: string): string => {
+  const masterKey = getMasterKey();
   return crypto
-    .createHmac('sha256', getEncryptionKey())
+    .createHmac('sha256', masterKey)
     .update(data)
     .digest('hex');
 };

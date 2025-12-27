@@ -19,7 +19,9 @@ router.patch('/:orderId/status', authenticate, authorize('admin'), updateOrderSt
 // Get payment details to resume payment for processing orders
 router.get('/:orderId/payment-details', authenticate, getOrderPaymentDetailsHandler);
 
-// DEV ONLY: Complete payment without webhook (for testing in development)
-router.post('/:orderId/complete-payment-dev', authenticate, completePaymentDevHandler);
+// DEV ONLY: Complete payment without webhook (for testing)
+// SECURITY: Requires admin role + multiple environment checks in handler
+// This endpoint returns 404 in production to avoid enumeration
+router.post('/:orderId/complete-payment-dev', authenticate, authorize('admin'), completePaymentDevHandler);
 
 export default router;

@@ -4,6 +4,7 @@ import cors, { CorsOptions } from 'cors';
 import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
+import crypto from 'crypto';
 import path from 'path';
 import passport from './config/passport'; // Import passport configuration
 import { stripeWebhookHandler } from './controllers/payment.controller';
@@ -96,6 +97,74 @@ app.use(generalRateLimiter);
 
 // Initialize Passport for OAuth
 app.use(passport.initialize());
+
+// ============================================
+// CSRF PROTECTION (Double Submit Cookie Pattern)
+// ============================================
+const CSRF_COOKIE_NAME = 'csrf-token';
+const CSRF_HEADER_NAME = 'x-csrf-token';
+
+// Generate CSRF token endpoint
+app.get('/api/v1/csrf-token', (req, res) => {
+  // Generate cryptographically secure token
+  const token = crypto.randomBytes(32).toString('hex');
+  
+  // Set as httpOnly cookie
+  res.cookie(CSRF_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: appConfig.env === 'production',
+    sameSite: 'strict',
+    maxAge: 3600000 // 1 hour
+  });
+  
+  // Also return token for client to include in headers
+  res.json({ csrfToken: token });
+});
+
+// CSRF validation middleware for state-changing requests
+const csrfProtection = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Skip CSRF for safe methods
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+  
+  // Skip CSRF for webhook endpoints (they have their own verification)
+  if (req.path.includes('/webhook')) {
+    return next();
+  }
+  
+  // Skip CSRF for OAuth callbacks
+  if (req.path.includes('/oauth') || req.path.includes('/callback')) {
+    return next();
+  }
+  
+  const cookieToken = req.cookies[CSRF_COOKIE_NAME];
+  const headerToken = req.headers[CSRF_HEADER_NAME] as string;
+  
+  // In production, require CSRF token
+  // In development, log warning but allow (for easier testing)
+  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    if (appConfig.env === 'production') {
+      logger.warn({
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        hasCookie: !!cookieToken,
+        hasHeader: !!headerToken
+      }, 'CSRF token validation failed');
+      return res.status(403).json({ status: 'error', message: 'CSRF token invalid' });
+    } else {
+      // Development: warn but allow
+      logger.debug({ path: req.path }, 'CSRF token missing in development (allowed)');
+    }
+  }
+  
+  next();
+};
+
+// Apply CSRF protection to API routes (after cookie parser)
+// Note: Applied after specific route handlers that need to skip CSRF
+app.use('/api/v1', csrfProtection);
 
 // SECURITY: Add size limit to webhook endpoint to prevent large payload attacks
 app.post('/api/v1/payments/webhook', express.raw({ type: 'application/json', limit: '64kb' }), stripeWebhookHandler);
