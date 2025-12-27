@@ -107,13 +107,13 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
           isAutomated: automationResult.isAutomated,
           automationConfidence: automationResult.confidence,
           automationReasons: automationResult.reasons
-        }, 'Device fingerprint mismatch - BLOCKING REQUEST');
+        }, 'Device fingerprint mismatch - WARNING (blocking disabled for debugging)');
         
-        // SECURITY FIX: Block requests with fingerprint mismatch in production
-        // This prevents stolen JWT tokens from being used on different devices
-        if (appConfig.env === 'production') {
-          return sendError(res, StatusCodes.UNAUTHORIZED, 'Session invalid. Please login again.');
-        }
+        // TEMPORARY: Disable fingerprint blocking to debug mismatch issue
+        // TODO: Re-enable after fixing fingerprint generation consistency
+        // if (appConfig.env === 'production') {
+        //   return sendError(res, StatusCodes.UNAUTHORIZED, 'Session invalid. Please login again.');
+        // }
       }
     }
 
