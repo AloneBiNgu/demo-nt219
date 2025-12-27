@@ -452,28 +452,35 @@ export const refreshAccessToken = async (refreshTokenString: string, deviceInfo:
     throw new Error('Token invalidated');
   }
 
-  // SECURITY: Verify device fingerprint matches the original login device
-  // This prevents stolen refresh tokens from being used on different devices
-  const currentFingerprint = generateFingerprint(deviceInfo.userAgent, deviceInfo.ipAddress);
-  const storedFingerprint = generateFingerprint(storedToken.userAgent, storedToken.ipAddress);
+  // SECURITY: Verify IP address matches the original login device
+  // We only check IP (not full fingerprint) because:
+  // - User-Agent can change (different browser, Postman, mobile app on same machine)
+  // - IP is harder to spoof and indicates different network/location
+  // - This prevents stolen tokens from being used from different locations
   
-  if (currentFingerprint !== storedFingerprint) {
-    // Device mismatch - potential token theft!
+  if (deviceInfo.ipAddress !== storedToken.ipAddress) {
+    // IP mismatch - potential token theft or user on different network
     logger.warn({
       userId: user.id,
       storedIp: storedToken.ipAddress,
       currentIp: deviceInfo.ipAddress,
       storedUserAgent: storedToken.userAgent?.substring(0, 50),
       currentUserAgent: deviceInfo.userAgent?.substring(0, 50)
-    }, 'Refresh token used from different device - possible token theft');
+    }, 'Refresh token used from different IP - possible token theft');
     
     // Revoke the token immediately
-    await revokeRefreshToken(refreshTokenString, 'Device fingerprint mismatch - possible theft');
-    
-    // Optionally revoke all tokens for this user (more aggressive)
-    // await revokeAllUserTokens(user.id, 'Suspicious refresh token usage detected');
+    await revokeRefreshToken(refreshTokenString, 'IP address mismatch - possible theft');
     
     throw new Error('Session invalid. Please login again.');
+  }
+
+  // Log if User-Agent changed but IP is same (likely same device, different tool)
+  if (deviceInfo.userAgent !== storedToken.userAgent) {
+    logger.info({
+      userId: user.id,
+      storedUserAgent: storedToken.userAgent?.substring(0, 50),
+      currentUserAgent: deviceInfo.userAgent?.substring(0, 50)
+    }, 'User-Agent changed but IP matches - allowing refresh (likely same device, different client)');
   }
 
   // Revoke old refresh token FIRST to prevent race conditions
