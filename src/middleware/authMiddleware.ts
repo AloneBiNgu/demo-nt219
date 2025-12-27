@@ -72,21 +72,23 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const automationResult = detectAutomation(req);
     
     if (payload.fingerprint && payload.fingerprint !== currentEnhancedFingerprint) {
-      // BACKWARD COMPATIBILITY: Try legacy fingerprint format
-      // This allows tokens created before the fix to still work
-      const { generateLegacyFingerprint } = require('../utils/fingerprint');
+      // BACKWARD COMPATIBILITY: Try other fingerprint formats
+      // This allows tokens created with different fingerprint generators to work
+      const { generateLegacyFingerprint, generateFingerprintFromComponents } = require('../utils/fingerprint');
       const currentLegacyFingerprint = generateLegacyFingerprint(userAgent, ipAddress);
+      const currentComponentsFingerprint = generateFingerprintFromComponents(userAgent, ipAddress);
       
       const matchesLegacy = payload.fingerprint === currentLegacyFingerprint;
+      const matchesComponents = payload.fingerprint === currentComponentsFingerprint;
       
-      if (matchesLegacy) {
-        // Token uses old fingerprint format - allow but log for monitoring
+      if (matchesLegacy || matchesComponents) {
+        // Token uses alternative fingerprint format - allow but log for monitoring
         logger.info({
           userId: user.id,
-          fingerprintType: 'legacy'
-        }, 'Legacy fingerprint detected - user will get enhanced fingerprint on next login');
+          fingerprintType: matchesLegacy ? 'legacy' : 'components'
+        }, 'Alternative fingerprint format detected - user will get enhanced fingerprint on next login');
       } else {
-        // Neither enhanced nor legacy fingerprint matches - possible attack
+        // No fingerprint format matches - possible attack
         logFingerprintEvent('mismatch', req, {
           userId: user.id,
           storedFingerprint: payload.fingerprint,
@@ -99,6 +101,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
           expectedFingerprint: payload.fingerprint?.substring(0, 16) + '...',
           enhancedFingerprint: currentEnhancedFingerprint.substring(0, 16) + '...',
           legacyFingerprint: currentLegacyFingerprint.substring(0, 16) + '...',
+          componentsFingerprint: currentComponentsFingerprint.substring(0, 16) + '...',
           userAgent,
           ipAddress,
           isAutomated: automationResult.isAutomated,
