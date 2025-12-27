@@ -63,57 +63,55 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return sendError(res, StatusCodes.FORBIDDEN, 'Account is temporarily locked');
     }
 
-    // SECURITY: Enhanced device fingerprint validation
-    // Uses multiple layers: IP, TLS, headers, browser-specific signals
-    const { userAgent, ipAddress, components } = extractDeviceInfo(req);
-    const currentEnhancedFingerprint = generateEnhancedFingerprint(req);
+    // SECURITY: Validate that the request comes from the same IP as login
+    // This prevents stolen access tokens from being used on different devices/networks
+    const { userAgent, ipAddress } = extractDeviceInfo(req);
     
     // Detect automation attempts
     const automationResult = detectAutomation(req);
     
-    if (payload.fingerprint && payload.fingerprint !== currentEnhancedFingerprint) {
-      // BACKWARD COMPATIBILITY: Try other fingerprint formats
-      // This allows tokens created with different fingerprint generators to work
+    // Check IP if stored in token (new tokens have ip field)
+    if (payload.ip && payload.ip !== ipAddress) {
+      logFingerprintEvent('mismatch', req, {
+        userId: user.id,
+        storedIp: payload.ip,
+        currentIp: ipAddress,
+        automationDetection: automationResult
+      });
+
+      logger.warn({
+        userId: user.id,
+        storedIp: payload.ip,
+        currentIp: ipAddress,
+        userAgent: userAgent?.substring(0, 50),
+        isAutomated: automationResult.isAutomated
+      }, 'Access token used from different IP - BLOCKING');
+      
+      // SECURITY: Block requests with IP mismatch in production
+      if (appConfig.env === 'production') {
+        return sendError(res, StatusCodes.UNAUTHORIZED, 'Session invalid. Please login again.');
+      }
+    }
+    
+    // BACKWARD COMPATIBILITY: For old tokens without IP, use fingerprint check
+    // This allows old tokens to work but will be phased out
+    if (!payload.ip && payload.fingerprint) {
       const { generateLegacyFingerprint, generateFingerprintFromComponents } = require('../utils/fingerprint');
+      const currentEnhancedFingerprint = generateEnhancedFingerprint(req);
       const currentLegacyFingerprint = generateLegacyFingerprint(userAgent, ipAddress);
       const currentComponentsFingerprint = generateFingerprintFromComponents(userAgent, ipAddress);
       
+      const matchesEnhanced = payload.fingerprint === currentEnhancedFingerprint;
       const matchesLegacy = payload.fingerprint === currentLegacyFingerprint;
       const matchesComponents = payload.fingerprint === currentComponentsFingerprint;
       
-      if (matchesLegacy || matchesComponents) {
-        // Token uses alternative fingerprint format - allow but log for monitoring
+      if (!matchesEnhanced && !matchesLegacy && !matchesComponents) {
+        // Log but don't block for old tokens - they will expire soon
         logger.info({
           userId: user.id,
-          fingerprintType: matchesLegacy ? 'legacy' : 'components'
-        }, 'Alternative fingerprint format detected - user will get enhanced fingerprint on next login');
-      } else {
-        // No fingerprint format matches - possible attack
-        logFingerprintEvent('mismatch', req, {
-          userId: user.id,
-          storedFingerprint: payload.fingerprint,
-          currentFingerprint: currentEnhancedFingerprint,
-          automationDetection: automationResult
-        });
-
-        logger.warn({
-          userId: user.id,
           expectedFingerprint: payload.fingerprint?.substring(0, 16) + '...',
-          enhancedFingerprint: currentEnhancedFingerprint.substring(0, 16) + '...',
-          legacyFingerprint: currentLegacyFingerprint.substring(0, 16) + '...',
-          componentsFingerprint: currentComponentsFingerprint.substring(0, 16) + '...',
-          userAgent,
-          ipAddress,
-          isAutomated: automationResult.isAutomated,
-          automationConfidence: automationResult.confidence,
-          automationReasons: automationResult.reasons
-        }, 'Device fingerprint mismatch - WARNING (blocking disabled for debugging)');
-        
-        // TEMPORARY: Disable fingerprint blocking to debug mismatch issue
-        // TODO: Re-enable after fixing fingerprint generation consistency
-        // if (appConfig.env === 'production') {
-        //   return sendError(res, StatusCodes.UNAUTHORIZED, 'Session invalid. Please login again.');
-        // }
+          currentIp: ipAddress
+        }, 'Old token format with fingerprint mismatch - allowing but will expire soon');
       }
     }
 

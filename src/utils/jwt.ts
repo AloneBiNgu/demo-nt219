@@ -36,6 +36,7 @@ interface AccessTokenInput {
   role: string;
   tokenVersion: number;
   fingerprint?: string;
+  ip?: string; // Store IP for device verification
 }
 
 export const signAccessToken = (payload: AccessTokenInput): string => {
@@ -52,6 +53,7 @@ export const signAccessToken = (payload: AccessTokenInput): string => {
       role: payload.role,
       tokenVersion: payload.tokenVersion,
       fingerprint: payload.fingerprint,
+      ip: payload.ip,
       jti
     },
     secret,

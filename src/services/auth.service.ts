@@ -272,7 +272,8 @@ export const loginUser = async (input: LoginInput, deviceInfo: DeviceInfo) => {
     email: user.email,
     role: user.role,
     tokenVersion: user.tokenVersion,
-    fingerprint
+    fingerprint,
+    ip: deviceInfo.ipAddress
   });
 
   const refreshToken = signRefreshToken({
@@ -397,7 +398,8 @@ export const loginWith2FA = async (tempToken: string, code: string, deviceInfo: 
     email: user.email,
     role: user.role,
     tokenVersion: user.tokenVersion,
-    fingerprint
+    fingerprint,
+    ip: deviceInfo.ipAddress
   });
 
   const refreshToken = signRefreshToken({
@@ -503,7 +505,8 @@ export const refreshAccessToken = async (refreshTokenString: string, deviceInfo:
     email: user.email,
     role: user.role,
     tokenVersion: user.tokenVersion,
-    fingerprint
+    fingerprint,
+    ip: deviceInfo.ipAddress
   });
 
   const newRefreshToken = signRefreshToken({

@@ -6,6 +6,7 @@ export interface AccessTokenPayload extends JwtPayload {
   role: string;
   tokenVersion: number;
   fingerprint?: string;
+  ip?: string; // Store IP for device verification
   jti: string;
 }
 

@@ -39,7 +39,8 @@ export const oauth2CallbackHandler = async (req: Request, res: Response) => {
       email: user.email,
       role: user.role,
       tokenVersion: user.tokenVersion,
-      fingerprint
+      fingerprint,
+      ip: ipAddress
     });
 
     const family = uuidv4();
@@ -201,7 +202,8 @@ export const discordCallbackHandler = async (req: Request, res: Response) => {
       email: user.email,
       role: user.role,
       tokenVersion: user.tokenVersion,
-      fingerprint
+      fingerprint,
+      ip: ipAddress
     });
 
     const family = uuidv4();
