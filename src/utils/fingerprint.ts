@@ -201,9 +201,15 @@ export interface FingerprintComponents {
  * Extract all fingerprint components from request
  */
 export function extractFingerprintComponents(req: Request): FingerprintComponents {
-  // Get IP address (handle proxies)
+  // Get IP address (handle proxies and Cloudflare)
+  // Priority: CF-Connecting-IP (Cloudflare) > X-Real-IP (nginx) > X-Forwarded-For > socket
+  const cfConnectingIp = req.headers['cf-connecting-ip'] as string;
+  const xRealIp = req.headers['x-real-ip'] as string;
   const forwardedFor = req.headers['x-forwarded-for'] as string;
-  const ipAddress = forwardedFor?.split(',')[0]?.trim() || 
+  
+  const ipAddress = cfConnectingIp ||
+                    xRealIp ||
+                    forwardedFor?.split(',')[0]?.trim() || 
                     req.socket.remoteAddress || 
                     'unknown';
 

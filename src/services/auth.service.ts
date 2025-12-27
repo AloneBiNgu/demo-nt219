@@ -458,6 +458,14 @@ export const refreshAccessToken = async (refreshTokenString: string, deviceInfo:
   // - IP is harder to spoof and indicates different network/location
   // - This prevents stolen tokens from being used from different locations
   
+  // Debug log to see what IPs we're comparing
+  logger.debug({
+    userId: user.id,
+    storedIp: storedToken.ipAddress,
+    currentIp: deviceInfo.ipAddress,
+    match: deviceInfo.ipAddress === storedToken.ipAddress
+  }, 'Refresh token IP comparison');
+  
   if (deviceInfo.ipAddress !== storedToken.ipAddress) {
     // IP mismatch - potential token theft or user on different network
     logger.warn({
