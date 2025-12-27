@@ -3,28 +3,38 @@ import { Request, Response, NextFunction } from 'express';
 import { securityConfig, redisConfig, appConfig } from '../config/env';
 import logger from '../utils/logger';
 import { detectAutomation, isSuspiciousUserAgent, logFingerprintEvent } from '../utils/fingerprint';
-import Redis from 'ioredis';
-import RedisStore from 'rate-limit-redis';
 
 // ============================================
 // REDIS CLIENT FOR DISTRIBUTED RATE LIMITING
+// Lazy-loaded to prevent startup crashes
 // ============================================
 
-let redisClient: Redis | null = null;
+let redisClient: import('ioredis').Redis | null = null;
+let redisInitialized = false;
+let RedisStore: typeof import('rate-limit-redis').default | null = null;
 
 /**
  * Initialize Redis client for distributed rate limiting
  * Falls back to in-memory if Redis is not available
+ * Uses lazy initialization to prevent app crashes
  */
-const initRedisClient = (): Redis | null => {
+const initRedisClient = async (): Promise<void> => {
+  if (redisInitialized) return;
+  redisInitialized = true;
+
   if (!redisConfig.enabled) {
     logger.info('Redis rate limiting disabled, using in-memory store');
-    return null;
+    return;
   }
 
   try {
+    // Dynamic import to prevent crashes if Redis is unavailable
+    const Redis = (await import('ioredis')).default;
+    RedisStore = (await import('rate-limit-redis')).default;
+    
     const client = new Redis(redisConfig.url, {
       maxRetriesPerRequest: 3,
+      enableOfflineQueue: false, // Don't queue commands when disconnected
       retryStrategy: (times) => {
         if (times > 3) {
           logger.warn('Redis connection failed after 3 retries, falling back to in-memory');
@@ -32,32 +42,47 @@ const initRedisClient = (): Redis | null => {
         }
         return Math.min(times * 100, 3000);
       },
-      lazyConnect: true
+      lazyConnect: true,
+      connectTimeout: 5000,
+      commandTimeout: 3000
     });
 
+    // Handle connection events without throwing
     client.on('connect', () => {
       logger.info('Redis connected for rate limiting');
+      redisClient = client;
     });
 
     client.on('error', (err) => {
-      logger.error({ err }, 'Redis connection error');
+      // Log but don't throw - graceful degradation
+      logger.warn({ err: err.message }, 'Redis connection error (using in-memory fallback)');
     });
 
-    // Try to connect
-    client.connect().catch((err) => {
-      logger.warn({ err }, 'Failed to connect to Redis, using in-memory fallback');
+    client.on('close', () => {
+      logger.info('Redis connection closed');
       redisClient = null;
     });
 
-    return client;
+    // Try to connect with timeout
+    const connectPromise = client.connect();
+    const timeoutPromise = new Promise<void>((_, reject) => 
+      setTimeout(() => reject(new Error('Redis connection timeout')), 5000)
+    );
+
+    await Promise.race([connectPromise, timeoutPromise]);
+    redisClient = client;
+    logger.info('Redis initialized successfully');
+    
   } catch (err) {
-    logger.warn({ err }, 'Failed to initialize Redis client');
-    return null;
+    logger.warn({ err: (err as Error).message }, 'Failed to initialize Redis, using in-memory fallback');
+    redisClient = null;
   }
 };
 
-// Initialize on module load
-redisClient = initRedisClient();
+// Initialize Redis in background (non-blocking)
+initRedisClient().catch(() => {
+  // Silently handle - already logged inside
+});
 
 // ============================================
 // DISTRIBUTED FAILED LOGIN TRACKING (Redis/Memory)
@@ -284,14 +309,15 @@ export const cleanupExpiredRecords = (): void => {
 setInterval(cleanupExpiredRecords, 5 * 60 * 1000);
 
 // ============================================
-// EXPRESS RATE LIMITERS WITH REDIS STORE
+// EXPRESS RATE LIMITERS WITH OPTIONAL REDIS STORE
 // ============================================
 
 /**
  * Create Redis store for rate limiting if Redis is available
+ * Returns undefined to use default in-memory store
  */
-const createRateLimitStore = () => {
-  if (redisClient) {
+const createRateLimitStore = (): import('rate-limit-redis').default | undefined => {
+  if (redisClient && RedisStore) {
     try {
       return new RedisStore({
         // @ts-expect-error - Types mismatch but works at runtime

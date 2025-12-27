@@ -117,8 +117,9 @@ services:
       VAULT_ENABLED: "true"
       VAULT_ADDR: http://vault:8200
       VAULT_SECRET_PATH: secret/data/demo-nt219
-      REDIS_ENABLED: "true"
-      REDIS_URL: redis://redis:6379
+      # Redis is optional - set REDIS_ENABLED=true when redis service is running
+      REDIS_ENABLED: ${REDIS_ENABLED:-false}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     env_file:
       - .env.production
     depends_on:
@@ -126,8 +127,7 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      # Note: Redis dependency removed - it's optional now
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
