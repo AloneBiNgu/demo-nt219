@@ -87,10 +87,9 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         isAutomated: automationResult.isAutomated
       }, 'Access token used from different IP - BLOCKING');
       
-      // SECURITY: Block requests with IP mismatch in production
-      if (appConfig.env === 'production') {
-        return sendError(res, StatusCodes.UNAUTHORIZED, 'Session invalid. Please login again.');
-      }
+      // SECURITY: Block requests with IP mismatch in ALL environments
+      // This prevents stolen access tokens from being used on different devices
+      return sendError(res, StatusCodes.UNAUTHORIZED, 'Session invalid. Please login again.');
     }
     
     // BACKWARD COMPATIBILITY: For old tokens without IP, use fingerprint check
