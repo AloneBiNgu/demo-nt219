@@ -37,7 +37,7 @@ docker-compose -f docker-compose.prod.yml up -d
 
 -   **Frontend:** http://localhost:3000
 -   **Backend API:** http://localhost:5000/api/v1
--   **Vault UI:** http://localhost:8201
+-   **Vault UI:** http://localhost:8202
 -   **Health Check:** http://localhost:5000/api/v1/health
 
 ---
@@ -82,7 +82,7 @@ Vault chạy ở dev mode với root token: `dev-only-token`
 
 ```bash
 # Truy cập Vault UI
-http://localhost:8201
+http://localhost:8202
 ```
 
 ### Kích hoạt Vault trong ứng dụng
@@ -91,7 +91,7 @@ In file `.env`:
 
 ```env
 VAULT_ENABLED=true
-VAULT_ADDR=http://localhost:8201
+VAULT_ADDR=http://localhost:8202
 VAULT_TOKEN=dev-only-token
 VAULT_SECRET_PATH=secret/data/demo-nt219
 ```

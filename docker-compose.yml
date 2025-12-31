@@ -54,10 +54,10 @@ services:
         container_name: nt219-vault
         restart: unless-stopped
         ports:
-            - '8201:8201'
+            - '8202:8202'
         environment:
-            VAULT_ADDR: http://0.0.0.0:8201
-            VAULT_API_ADDR: http://0.0.0.0:8201
+            VAULT_ADDR: http://0.0.0.0:8202
+            VAULT_API_ADDR: http://0.0.0.0:8202
             VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_ROOT_TOKEN:-dev-only-token}
         cap_add:
             - IPC_LOCK
@@ -90,7 +90,7 @@ services:
             PORT: 5000
             MONGO_URI: mongodb://mongodb:27017/security-nt219
             VAULT_ENABLED: ${VAULT_ENABLED:-false}
-            VAULT_ADDR: http://vault:8201
+            VAULT_ADDR: http://vault:8202
             VAULT_TOKEN: ${VAULT_ROOT_TOKEN:-dev-only-token}
             VAULT_SECRET_PATH: secret/data/demo-nt219
             REDIS_ENABLED: 'true'

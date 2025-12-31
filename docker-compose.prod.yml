@@ -39,10 +39,10 @@ services:
         container_name: nt219-vault-prod
         restart: always
         ports:
-            - '127.0.0.1:8201:8201'
+            - '127.0.0.1:8202:8202'
         environment:
-            VAULT_ADDR: http://0.0.0.0:8201
-            VAULT_API_ADDR: http://0.0.0.0:8201
+            VAULT_ADDR: http://0.0.0.0:8202
+            VAULT_API_ADDR: http://0.0.0.0:8202
         cap_add:
             - IPC_LOCK
         volumes:
@@ -115,7 +115,7 @@ services:
             MONGO_URI: mongodb://mongodb:27017/security-nt219
             TRUST_PROXY: 'true'
             VAULT_ENABLED: 'true'
-            VAULT_ADDR: http://vault:8201
+            VAULT_ADDR: http://vault:8202
             VAULT_SECRET_PATH: secret/data/demo-nt219
             # Redis is optional - set REDIS_ENABLED=true when redis service is running
             REDIS_ENABLED: ${REDIS_ENABLED:-false}

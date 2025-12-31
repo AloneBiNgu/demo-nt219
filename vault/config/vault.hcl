@@ -8,13 +8,13 @@ storage "file" {
 
 # Listener configuration
 listener "tcp" {
-  address     = "0.0.0.0:8201"
+  address     = "0.0.0.0:8202"
   tls_disable = true  # Enable TLS in production with proper certificates
 }
 
 # API address for clients
-api_addr = "http://0.0.0.0:8201"
-cluster_addr = "http://0.0.0.0:8201"
+api_addr = "http://0.0.0.0:8202"
+cluster_addr = "http://0.0.0.0:8202"
 
 # UI Configuration
 ui = true

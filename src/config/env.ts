@@ -4,7 +4,7 @@ import { z } from 'zod';
 // Vault configuration (optional - for secret management)
 export const vaultConfig = {
   enabled: process.env.VAULT_ENABLED === 'true',
-  addr: process.env.VAULT_ADDR || 'http://127.0.0.1:8201',
+  addr: process.env.VAULT_ADDR || 'http://127.0.0.1:8202',
   token: process.env.VAULT_TOKEN,
   roleId: process.env.VAULT_ROLE_ID,
   secretId: process.env.VAULT_SECRET_ID,
