@@ -5,8 +5,9 @@
 ## 🚀 Quick Start với Docker
 
 ### Yêu Cầu
-- [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- [Git](https://git-scm.com/)
+
+-   [Docker Desktop](https://www.docker.com/products/docker-desktop)
+-   [Git](https://git-scm.com/)
 
 ### Bước 1: Clone Repository
 
@@ -34,10 +35,10 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ### Bước 4: Truy cập
 
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:5000/api/v1
-- **Vault UI:** http://localhost:8200
-- **Health Check:** http://localhost:5000/api/v1/health
+-   **Frontend:** http://localhost:3000
+-   **Backend API:** http://localhost:5000/api/v1
+-   **Vault UI:** http://localhost:8201
+-   **Health Check:** http://localhost:5000/api/v1/health
 
 ---
 
@@ -76,18 +77,21 @@ demo-nt219/
 ## 🔐 HashiCorp Vault
 
 ### Development Mode
+
 Vault chạy ở dev mode với root token: `dev-only-token`
 
 ```bash
 # Truy cập Vault UI
-http://localhost:8200
+http://localhost:8201
 ```
 
 ### Kích hoạt Vault trong ứng dụng
-Trong file `.env`:
+
+In file `.env`:
+
 ```env
 VAULT_ENABLED=true
-VAULT_ADDR=http://localhost:8200
+VAULT_ADDR=http://localhost:8201
 VAULT_TOKEN=dev-only-token
 VAULT_SECRET_PATH=secret/data/demo-nt219
 ```
@@ -97,9 +101,10 @@ VAULT_SECRET_PATH=secret/data/demo-nt219
 ## 🔧 Development (Không dùng Docker)
 
 ### Yêu Cầu
-- Node.js >= 18
-- MongoDB (local hoặc Atlas)
-- HashiCorp Vault (optional)
+
+-   Node.js >= 18
+-   MongoDB (local hoặc Atlas)
+-   HashiCorp Vault (optional)
 
 ### Cài đặt
 
@@ -118,17 +123,17 @@ npm run dev
 
 ## 🔐 Tính Năng Bảo Mật
 
-- ✅ JWT Authentication với Token Rotation
-- ✅ HashiCorp Vault Secret Management
-- ✅ OAuth2 (Google, GitHub, Discord)
-- ✅ Two-Factor Authentication (2FA)
-- ✅ Rate Limiting
-- ✅ CORS Protection
-- ✅ Helmet Security Headers
-- ✅ MongoDB Injection Prevention
-- ✅ Password Hashing (bcrypt)
-- ✅ Email Verification
-- ✅ Account Lockout
+-   ✅ JWT Authentication với Token Rotation
+-   ✅ HashiCorp Vault Secret Management
+-   ✅ OAuth2 (Google, GitHub, Discord)
+-   ✅ Two-Factor Authentication (2FA)
+-   ✅ Rate Limiting
+-   ✅ CORS Protection
+-   ✅ Helmet Security Headers
+-   ✅ MongoDB Injection Prevention
+-   ✅ Password Hashing (bcrypt)
+-   ✅ Email Verification
+-   ✅ Account Lockout
 
 ---
 

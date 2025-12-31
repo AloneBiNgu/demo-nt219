@@ -24,7 +24,7 @@ class VaultClient {
   constructor() {
     this.config = {
       enabled: process.env.VAULT_ENABLED === 'true',
-      endpoint: process.env.VAULT_ADDR || 'http://127.0.0.1:8200',
+      endpoint: process.env.VAULT_ADDR || 'http://127.0.0.1:8201',
       token: process.env.VAULT_TOKEN,
       roleId: process.env.VAULT_ROLE_ID,
       secretId: process.env.VAULT_SECRET_ID,
